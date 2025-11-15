@@ -1,95 +1,95 @@
 <?php
-require_once '../config/db.php'; // Đã bao gồm session_start()
+session_start();
+require_once '../config/db.php';
 
-$error = '';
-$username = '';
+$error_message = '';
 
-// Nếu đã đăng nhập, chuyển hướng về trang chủ
-if (isset($_SESSION['user_id'])) {
-    redirect('index.php');
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
 
     if (empty($username) || empty($password)) {
-        $error = 'Vui lòng nhập Tên đăng nhập và Mật khẩu.';
+        $error_message = "Vui lòng nhập tên đăng nhập và mật khẩu.";
     } else {
         try {
-            // 1. Tìm người dùng bằng username
-            // Sử dụng Prepared Statement
             $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
 
-            // 2. Xác thực mật khẩu
             if ($user && password_verify($password, $user['password'])) {
-                // 3. Đăng nhập thành công: Lưu thông tin vào Session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
-
-                // 4. Chuyển hướng đến trang chủ (Dashboard)
-                redirect('index.php');
+                // Chuyển hướng đến trang dashboard
+                header("Location: index.php");
+                exit();
             } else {
-                // Đăng nhập thất bại
-                $error = 'Tên đăng nhập hoặc Mật khẩu không chính xác.';
+                $error_message = "Tên đăng nhập hoặc mật khẩu không đúng.";
             }
         } catch (PDOException $e) {
-            $error = 'Lỗi CSDL: ' . $e->getMessage();
+            $error_message = "Lỗi kết nối CSDL: " . $e->getMessage();
         }
     }
 }
-
-// Hiển thị giao diện
-include '../includes/header.php';
 ?>
 
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="text-center">Đăng nhập</h3>
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Đăng nhập | Quản lý Công việc</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="img js-fullheight" style="background-image: url(images/bg.jpg);">
+<section class="ftco-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center mb-5">
+                <h2 class="heading-section text-white">Quản lý Công việc</h2>
             </div>
-            <div class="card-body">
-
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger">
-                        <?php echo $error; ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (isset($_GET['registered']) && $_GET['registered'] === 'success'): ?>
-                    <div class="alert alert-success">
-                        Đăng ký thành công! Vui lòng đăng nhập.
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($_GET['session_expired'])): ?>
-                    <div class="alert alert-warning">
-                        Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
-                    </div>
-                <?php endif; ?>
-
-                <form action="login.php" method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Tên đăng nhập</label>
-                        <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Mật khẩu</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Đăng nhập</button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer text-center">
-                Chưa có tài khoản? <a href="register.php">Đăng ký</a>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="login-wrap p-0">
+                    <h3 class="mb-4 text-center">Đăng nhập</h3>
+                    
+                    <form action="login.php" method="POST" class="signin-form">
+                        <div class="form-group">
+                            <input type="text" name="username" class="form-control" placeholder="Tên đăng nhập" required>
+                        </div>
+                        <div class="form-group">
+                            <input id="password-field" type="password" name="password" class="form-control" placeholder="Mật khẩu" required>
+                            <span toggle="#password-field" class="fa fa-fw fa-eye field-icon toggle-password"></span>
+                        </div>
+                        
+                     
+                       <?php if ($error_message): ?>
+    <div class="text-danger text-center mb-3 small" role="alert">
+        <?php echo $error_message; ?>
+    </div>
+<?php endif; ?>
+                        
+                        <div class="form-group">
+                            <button type="submit" name="login" class="form-control btn btn-primary submit px-3">Đăng nhập</button>
+                        </div>
+                        
+                        <div class="w-100 text-center pt-4">
+                            <a href="register.php" style="color: #fff">Chưa có tài khoản? Đăng ký ngay</a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<?php include '../includes/footer.php'; ?>
+<script src="js/jquery.min.js"></script>
+<script src="js/popper.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
